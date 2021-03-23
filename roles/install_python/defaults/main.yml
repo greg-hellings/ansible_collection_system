@@ -1,0 +1,10 @@
+install_python_become: true
+install_python_become_user: root
+
+install_python_default_interpreter: /usr/bin/python
+install_python_default_pip: /usr/bin/pip
+install_python_platform: /usr/libexec/platform-python
+install_python_pkg: " {{ python | default('python3') }}"
+install_python_pkg_abs_path: /usr/bin/{{ python_pkg.strip() }}
+install_python_pip_pkg_abs_path: /usr/bin/pip{{ python_pkg.strip()[-1] }}
+install_python_system_repos: []

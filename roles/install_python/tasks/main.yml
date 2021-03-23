@@ -1,0 +1,58 @@
+# role tasks
+- name: Set platform/version specific variables
+  include_vars: "{{ __rolename_vars_file }}"
+  loop:
+    - "{{ ansible_facts.os_family }}.yml"
+    - "{{ ansible_facts.distribution }}.yml"
+    - "{{ ansible_facts.distribution }}_{{ ansible_facts.distribution_major_version }}.yml"
+    - "{{ ansible_facts.distribution }}_{{ ansible_facts.distribution_version }}.yml"
+  vars:
+    __rolename_vars_file: "{{ role_path }}/vars/{{ item }}"
+  when: __rolename_vars_file is file
+
+- name: set python interpreter to {{ install_python_interpreter }}
+  set_fact:
+    ansible_python_interpreter: "{{ install_python_interpreter }}"
+
+- name: Verify {{ ansible_python_interpreter }} exists
+  stat:
+    path: "{{ ansible_python_interpreter }}"
+  register: result
+
+- name: "{{ inventory_hostname }} python interpreter"
+  debug:
+    var: result.stat.lnk_source
+
+- name: Gather facts
+  setup:
+
+- name: Message
+  debug:
+    msg: >-
+      {{ inventory_hostname }} is {{ ansible_facts.distribution }}
+      {{ ansible_facts.distribution_version }}
+
+- name: Add system repositories
+  include_role:
+    name: system_repositories
+  vars:
+    system_repositories_configs: "{{ install_python_system_repos }}"
+
+- become: "{{ install_python_become }}"
+  become_user: "{{ install_python_become_user }}"
+  block:
+    - name: install {{ install_python_pkg }}
+      package:
+        name: "{{ install_python_pkg }}"
+        state: present
+
+    - name: Set {{ install_python_default_interpreter }} package to {{ install_python_pkg_abs_path }}
+      alternatives:
+        name: python
+        path: "{{ install_python_pkg_abs_path }}"
+
+    - name: Set {{ install_python_default_pip }} to {{ install_python_pip_pkg_abs_path }}
+      file:
+        state: link
+        src: "{{ install_python_pip_pkg_abs_path }}"
+        dest: "{{ install_python_default_pip }}"
